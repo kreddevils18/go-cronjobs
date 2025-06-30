@@ -2,9 +2,11 @@ package cronjob
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -33,18 +35,20 @@ func TestJobExecutor_Execute(t *testing.T) {
 		// Arrange
 		mockLogger := new(MockLogger)
 		executor := NewJobExecutor(mockLogger)
-		executed := false
+		var executed bool
+		var wg sync.WaitGroup
+
+		wg.Add(1)
 		normalTask := func(ctx context.Context) {
+			defer wg.Done()
 			executed = true
 		}
 
 		// Act
 		executor.Execute(context.Background(), normalTask)
-		time.Sleep(100 * time.Millisecond)
+		wg.Wait()
 
 		// Assert
-		if !executed {
-			t.Error("expected the task to be executed, but it was not")
-		}
+		assert.True(t, executed, "expected the task to be executed, but it was not")
 	})
 }
